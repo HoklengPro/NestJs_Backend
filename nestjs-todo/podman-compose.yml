@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  nestjs-todo:
+    container_name: nestjs-todo-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
