@@ -1,0 +1,230 @@
+Practice 2 - Dependency Injection & MVC Pattern
+Step 1. NestJS basics + make Receipts real (CRUD skeleton)
+Task 1: Add DTOs (Receipts)
+Create folder: src/receipts/dto/
+
+src/receipts/dto/create-receipt.dto.ts
+
+import { IsDateString, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+
+export class CreateReceiptDto {
+  @IsDateString()
+  issuedAt: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsNumber()
+  @Min(0)
+  price: number;
+}
+src/receipts/dto/update-receipt.dto.ts
+
+import { IsDateString, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+
+export class UpdateReceiptDto {
+  @IsOptional()
+  @IsDateString()
+  issuedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price?: number;
+}
+Task 2: Enable global ValidationPipe
+Edit src/main.ts
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+Task 3: Turn ReceiptsController into full CRUD routes
+Replace src/receipts/receipts.controller.ts with:
+
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { ReceiptsService } from './receipts.service';
+import { CreateReceiptDto } from './dto/create-receipt.dto';
+import { UpdateReceiptDto } from './dto/update-receipt.dto';
+
+@Controller('receipts')
+export class ReceiptsController {
+  constructor(private readonly receiptsService: ReceiptsService) {}
+
+  @Get()
+  findAll() {
+    return this.receiptsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.receiptsService.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: CreateReceiptDto) {
+    return this.receiptsService.create(dto);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateReceiptDto) {
+    return this.receiptsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.receiptsService.remove(id);
+  }
+}
+Checkpoint tests:
+
+GET /receipts
+
+POST /receipts with invalid fields should return 400
+
+Step 2 — TypeORM Repository + real database operations
+Task 4: Inject Repository in ReceiptsService
+Replace src/receipts/receipts.service.ts with:
+
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Receipt } from 'src/database/entities/receipts.entity';
+import { CreateReceiptDto } from './dto/create-receipt.dto';
+import { UpdateReceiptDto } from './dto/update-receipt.dto';
+
+@Injectable()
+export class ReceiptsService {
+  constructor(
+    @InjectRepository(Receipt)
+    private readonly receiptRepo: Repository<Receipt>,
+  ) {}
+
+  async findAll() {
+    return this.receiptRepo.find({ order: { issuedAt: 'DESC' } });
+  }
+
+  async findOne(receiptId: string) {
+    const receipt = await this.receiptRepo.findOne({ where: { receiptId } });
+    if (!receipt) throw new NotFoundException('Receipt not found');
+    return receipt;
+  }
+
+  async create(dto: CreateReceiptDto) {
+    const receipt = this.receiptRepo.create({
+      issuedAt: new Date(dto.issuedAt),
+      name: dto.name,
+      price: dto.price,
+    });
+    return this.receiptRepo.save(receipt);
+  }
+
+  async update(receiptId: string, dto: UpdateReceiptDto) {
+    const receipt = await this.findOne(receiptId);
+
+    if (dto.issuedAt !== undefined) receipt.issuedAt = new Date(dto.issuedAt);
+    if (dto.name !== undefined) receipt.name = dto.name;
+    if (dto.price !== undefined) receipt.price = dto.price;
+
+    return this.receiptRepo.save(receipt);
+  }
+
+  async remove(receiptId: string) {
+    const receipt = await this.findOne(receiptId);
+    await this.receiptRepo.remove(receipt);
+    return { deleted: true, receiptId };
+  }
+}
+Checkpoint:
+
+Create receipt, then list receipts, then update, then delete.
+
+Confirm Postgres table is created automatically (because synchronize: true in your AppModule).
+
+Task 5: Create an API Key Guard
+Create src/common/guards/api-key.guard.ts
+
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+
+@Injectable()
+export class ApiKeyGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const req = context.switchToHttp().getRequest<Request & { headers: any }>();
+    const apiKey = req.headers['x-api-key'];
+
+    if (!apiKey || apiKey !== process.env.API_KEY) {
+      throw new UnauthorizedException('Invalid API key');
+    }
+    return true;
+  }
+}
+Apply guard only to receipts (so orders stays open for demo). Edit src/receipts/receipts.controller.ts
+
+import { UseGuards } from '@nestjs/common';
+import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
+
+@UseGuards(ApiKeyGuard)
+@Controller('receipts')
+export class ReceiptsController { ... }
+Checkpoint:
+
+GET /receipts without header x-api-key: itc-123 => 401
+
+with header => success
+
+Step 3 — Interceptor + improve RabbitMQ events payload
+Task 6: Add a Logging Interceptor
+Create src/common/interceptors/logging.interceptor.ts
+
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+
+@Injectable()
+export class LoggingInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const req = context.switchToHttp().getRequest();
+    const { method, url } = req;
+
+    const start = Date.now();
+    return next.handle().pipe(
+      tap(() => {
+        const ms = Date.now() - start;
+        console.log(`[HTTP] ${method} ${url} - ${ms}ms`);
+      }),
+    );
+  }
+}
+Register globally in src/main.ts
+
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
+app.useGlobalInterceptors(new LoggingInterceptor());
+Checkpoint:
+
+POST /orders logs event emission
+
