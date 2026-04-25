@@ -27,7 +27,8 @@ import { GraphqlModule } from './graphql/graphql.module';
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      typePaths: [join(process.cwd(), 'src/graphql/schema/*.graphql')],
+      // typePaths: [join(process.cwd(), 'src/graphql/schema/*.graphql')],
+      autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
       playground: true,
     }),
     ReceiptsModule,
