@@ -18,4 +18,8 @@ export class ProductService {
     this.products.push(newProd);
     return newProd;
   }
+
+  findByCategory(categoryId: number) {
+    return this.products.filter(p => p.categoryId === categoryId);
+  }
 }

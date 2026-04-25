@@ -31,4 +31,9 @@ export class ProductCodeFirstResolver {
   category(@Parent() product: ProductType) {
     return this.categoryService.findOne(Number(product.categoryId));
   }
+
+  @Query(() => [ProductType])
+  productsByCategory(@Args('categoryId') categoryId: number) {
+    return this.productService.findByCategory(categoryId);
+  }
 }
