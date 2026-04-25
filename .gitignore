@@ -2,3 +2,13 @@ node_modules/
 dist/
 .env
 .idea/
+
+# Ignore class assignments/reports/misc files
+TP02_Report.adoc
+TP02_Report.pdf
+TP02.http
+TP03_Report.adoc
+TP03_Report.pdf
+TP03.http
+TP04_ProjectStructure.txt
+.DS_Store
