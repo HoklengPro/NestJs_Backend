@@ -1,0 +1,27 @@
+# Multi-project: pick the project/environment in IntelliJ’s GraphQL tool window.
+# - nest: local NestJS /graphql
+# - hasura: Hasura Cloud (uses x-hasura-role: anonymous — no admin secret)
+
+projects:
+  nest:
+    schema: src/graphql/schema.gql
+    documents:
+      - src/graphql/schema/**/*.graphql
+    extensions:
+      endpoints:
+        default:
+          url: http://localhost:4444/graphql
+
+  hasura:
+    schema:
+      - "https://hasuratp05.hasura.app/v1/graphql":
+          headers:
+            x-hasura-role: anonymous
+    documents:
+      - "hasura/**/*.graphql"
+    extensions:
+      endpoints:
+        default:
+          url: https://hasuratp05.hasura.app/v1/graphql
+          headers:
+            x-hasura-role: anonymous

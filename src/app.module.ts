@@ -12,6 +12,7 @@ import { CoreModule } from './core/core.module';
 import { CategoryModule } from './category/category.module';
 import { ProductModule } from './product/product.module';
 import { GraphqlModule } from './graphql/graphql.module';
+import { HasuraProxyModule } from './hasura-proxy/hasura-proxy.module';
 
 @Module({
   imports: [
@@ -30,6 +31,9 @@ import { GraphqlModule } from './graphql/graphql.module';
       // typePaths: [join(process.cwd(), 'src/graphql/schema/*.graphql')],
       autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
       playground: true,
+      // Apollo Server 4+ blocks some browser requests to /graphql by default (CSRF).
+      // Disable for local dev so Playground / Apollo Sandbox can run queries.
+      csrfPrevention: false,
     }),
     ReceiptsModule,
     NotificationsModule,
@@ -38,6 +42,7 @@ import { GraphqlModule } from './graphql/graphql.module';
     CategoryModule,
     ProductModule,
     GraphqlModule,
+    HasuraProxyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,8 @@
+query GetTodos {
+  todos(order_by: { created_at: desc }, limit: 20) {
+    id
+    title
+    is_done
+    created_at
+  }
+}

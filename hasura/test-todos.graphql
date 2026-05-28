@@ -1,0 +1,45 @@
+# Test Hasura todos API (anonymous role).
+# IntelliJ: select GraphQL project "hasura" (see graphql.config.yml), then run each operation.
+# Hasura Console: Request headers → { "x-hasura-role": "anonymous" }
+
+query GetTodos {
+  todos(order_by: { created_at: desc }, limit: 50) {
+    id
+    title
+    is_done
+    created_at
+  }
+}
+
+mutation AddTodo($title: String!) {
+  insert_todos_one(object: { title: $title }) {
+    id
+    title
+    is_done
+    created_at
+  }
+}
+
+# Variables for ToggleTodo: { "id": "<uuid-from-GetTodos>", "done": true }
+mutation ToggleTodo($id: uuid!, $done: Boolean!) {
+  update_todos_by_pk(pk_columns: { id: $id }, _set: { is_done: $done }) {
+    id
+    is_done
+  }
+}
+
+# Variables for DeleteTodo: { "id": "<uuid-from-GetTodos>" }
+mutation DeleteTodo($id: uuid!) {
+  delete_todos_by_pk(id: $id) {
+    id
+  }
+}
+
+subscription TodosLive {
+  todos(order_by: { created_at: desc }) {
+    id
+    title
+    is_done
+    created_at
+  }
+}

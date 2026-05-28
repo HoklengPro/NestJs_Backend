@@ -1,0 +1,61 @@
+query TestCategories {
+  categories {
+    id
+    name
+  }
+}
+
+query TestProductsWithCategory {
+  products {
+    id
+    name
+    price
+    categoryId
+    category {
+      id
+      name
+    }
+  }
+}
+
+query TestProductById {
+  product(id: 1) {
+    id
+    name
+    price
+    category {
+      id
+      name
+    }
+  }
+}
+
+query TestProductsByCategory {
+  productsByCategory(categoryId: 1) {
+    id
+    name
+    price
+  }
+}
+
+mutation TestCreateCategory {
+  createCategory(name: "IntelliJGraphQLTest") {
+    id
+    name
+  }
+}
+
+mutation TestCreateProduct {
+  createProduct(
+    input: { name: "Test product", price: 12.5, categoryId: "1" }
+  ) {
+    id
+    name
+    price
+    categoryId
+    category {
+      id
+      name
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ResolveField, Parent } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ResolveField, Parent, Int } from '@nestjs/graphql';
 import { ProductType } from '../types/product.type';
 import { CreateProductInput } from '../inputs/create-product.input';
 import { ProductService } from '../../product/product.service';
@@ -18,7 +18,7 @@ export class ProductCodeFirstResolver {
   }
 
   @Query(() => ProductType, { nullable: true })
-  product(@Args('id') id: number) {
+  product(@Args('id', { type: () => Int }) id: number) {
     return this.productService.findOne(id);
   }
 
@@ -33,7 +33,7 @@ export class ProductCodeFirstResolver {
   }
 
   @Query(() => [ProductType])
-  productsByCategory(@Args('categoryId') categoryId: number) {
+  productsByCategory(@Args('categoryId', { type: () => Int }) categoryId: number) {
     return this.productService.findByCategory(categoryId);
   }
 }
