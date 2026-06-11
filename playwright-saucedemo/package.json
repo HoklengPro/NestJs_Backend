@@ -1,0 +1,19 @@
+{
+  "name": "playwright-saucedemo",
+  "version": "1.0.0",
+  "description": "TP06 — Playwright E2E tests for Sauce Demo",
+  "scripts": {
+    "test": "playwright test --project=chromium",
+    "test:chromium": "playwright test --project=chromium",
+    "test:multi": "playwright test --project=chromium --project=firefox",
+    "test:headed": "playwright test --headed --trace on",
+    "report": "playwright show-report"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "typescript": "^5.8.3"
+  }
+}
